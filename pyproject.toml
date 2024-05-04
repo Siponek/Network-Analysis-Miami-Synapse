@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "network-analysis-assignment2"
+version = "0.1.0"
+description = "Assignment number 2 for network analysis using bn-mouse-kasthuri_graph_v4. SIR simulation."
+authors = ["siponek <szinkowicz@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+black = "^24.4.2"
+seaborn = "^0.13.2"
+networkx = "^3.3"
+scipy = "^1.13.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
