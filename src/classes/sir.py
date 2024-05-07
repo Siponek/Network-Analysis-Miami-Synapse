@@ -1,4 +1,4 @@
-from viz_agent import VizAgent
+from .viz_agent import VizAgent
 from tqdm import tqdm
 import networkx as nx
 import numpy as np
@@ -132,24 +132,45 @@ class SIR:
             pbar.close()
         return history_states, snapshots
 
-    def infect_community(self, initial_infections_per_community):
+    def infect_by_betweenness(self, initial_infections: int):
         infected_nodes = []
-        communities = nx.algorithms.community.louvain_communities(self.curr_net_state)
-        if communities is None:
-            raise ValueError("No communities found in the graph.")
-        try:
+        centrality = nx.betweenness_centrality(self.curr_net_state)
+        sorted_by_centrality = sorted(
+            centrality.items(), key=lambda x: x[1], reverse=True
+        )
+        infected_nodes = [node for node, _ in sorted_by_centrality[:initial_infections]]
 
-            for community in communities:  # type: ignore
-                if len(community) > initial_infections_per_community:
-                    infected_nodes.extend(
-                        random.sample(community, initial_infections_per_community)
-                    )
-                else:
-                    infected_nodes.extend(community)
-            return infected_nodes
-        except Exception as e:
-            print(f"Error: {e}")
-            return infected_nodes
+        return infected_nodes
+
+    def infect_by_closeness(self, initial_infections: int):
+        closeness = nx.closeness_centrality(self.curr_net_state)
+        sorted_by_closeness = sorted(
+            closeness.items(), key=lambda x: x[1], reverse=True
+        )
+        infected_nodes = [node for node, _ in sorted_by_closeness[:initial_infections]]
+        return infected_nodes
+
+    def infect_by_degree(self, initial_infections: int):
+        degrees = dict(self.curr_net_state.degree())
+        sorted_by_degree = sorted(degrees.items(), key=lambda x: x[1], reverse=True)
+        infected_nodes = [node for node, _ in sorted_by_degree[:initial_infections]]
+        return infected_nodes
+
+    def infect_by_eigenvector(self, initial_infections: int):
+        eigenvector = nx.eigenvector_centrality(self.curr_net_state)
+        sorted_by_eigenvector = sorted(
+            eigenvector.items(), key=lambda x: x[1], reverse=True
+        )
+        infected_nodes = [
+            node for node, _ in sorted_by_eigenvector[:initial_infections]
+        ]
+        return infected_nodes
+
+    def infect_by_pagerank(self, initial_infections: int):
+        pagerank = nx.pagerank(self.curr_net_state)
+        sorted_by_pagerank = sorted(pagerank.items(), key=lambda x: x[1], reverse=True)
+        infected_nodes = [node for node, _ in sorted_by_pagerank[:initial_infections]]
+        return infected_nodes
 
     def run_experiments(
         self,
@@ -158,26 +179,31 @@ class SIR:
         experiments,
         steps=500,
         snapshot_interval=50,
-        target_communities=False,
+        strategy: str = "random",
     ):
         results = {}
         experiment_num = 1
         self.curr_net_state = G
+        strategy_methods: dict = {
+            "closeness": self.infect_by_closeness,
+            "degree": self.infect_by_degree,
+            "eigenvector": self.infect_by_eigenvector,
+            "pagerank": self.infect_by_pagerank,
+        }
 
         for exp_id, params in experiments.items():
             self._current_sim_name = exp_id
             # Reset the graph to all susceptible
             nx.set_node_attributes(self.curr_net_state, "S", "state")
-
-            if target_communities:
-                infected_nodes = self.infect_community(
-                    initial_infections_per_community=params["i0"]
-                )
+            intiial_infections = params["i0"]
+            if strategy in strategy_methods:
+                infected_nodes = strategy_methods[strategy](intiial_infections)
             else:
+                # Random infection as fallback
                 infected_nodes = np.random.choice(
                     a=list(G.nodes()), size=params["i0"], replace=False
                 )
-
+            print(f"Initial infections: {len(infected_nodes)}")
             for node in infected_nodes:
                 self.curr_net_state.nodes[node]["state"] = "I"
                 self.curr_net_state.nodes[node]["infection_cooldown"] = 0

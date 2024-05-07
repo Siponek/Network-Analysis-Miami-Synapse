@@ -1,4 +1,8 @@
 from pathlib import Path
+import matplotlib
+
+# Use the non-interactive Agg backend
+matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 import matplotlib.patches as mpatches
 from networkx import draw_networkx
@@ -15,16 +19,22 @@ class VizAgent:
         frames_out_path: Path = Path("out/frames"),
         gif_out_path: Path = Path("out/gifs"),
         plot_out_path: Path = Path("out/plots"),
+        max_steps_x_axis: int = 100,
+        max_nodes_range: int = 500,
+        current_strategy: str = "random",
     ) -> None:
         self._snapshot_path = snapshot_path
         self._frames_out_path = frames_out_path
         self._gif_out_path = gif_out_path
         self._plot_out_path = plot_out_path
+        self._max_steps_x_axis = max_steps_x_axis
+        self._max_nodes_range = max_nodes_range
 
         self._snapshot_path.mkdir(exist_ok=True, parents=True)
         self._frames_out_path.mkdir(exist_ok=True, parents=True)
         self._gif_out_path.mkdir(exist_ok=True, parents=True)
         self._plot_out_path.mkdir(exist_ok=True, parents=True)
+        self._current_strategy = current_strategy
 
     @property
     def snapshot_path(self):
@@ -67,11 +77,10 @@ class VizAgent:
         pos (dict): The position dictionary for nodes.
         step (int): The current simulation step.
         experiment_num (str): Identifier for the experiment.
-        path_to_frames (Path): Path where frames are stored.
         snapshot_mode (bool): Whether to save snapshot mode images.
         params (dict, optional): Simulation parameters to display in the title.
         """
-        plt.figure(figsize=(8, 6))
+        fig, ax = plt.subplots(figsize=(10, 8))
         state_color = {"S": "blue", "I": "red", "R": "green"}
         colors = [state_color[G.nodes[n]["state"]] for n in G.nodes()]
         draw_networkx(
@@ -81,7 +90,7 @@ class VizAgent:
             node_size=25,
             width=0.4,
             with_labels=False,
-            edge_color=(0, 0, 0, 0.5),
+            edge_color=(0, 0, 0, 0.2),
         )
         if params:
             title_text = f'SIR at step {step} (p={params["p"]}, tI={params["tI"]}, q={params["q"]})'
@@ -94,17 +103,16 @@ class VizAgent:
                 )
                 patch = mpatches.Patch(color=c, label=f"{s} ({percentage:.3f})")
                 handles.append(patch)
-            plt.legend(handles=handles)
+            ax.legend(handles=handles)
         else:
             title_text = f"SIR at step {step}"
-            plt.legend(
+            ax.legend(
                 handles=[
                     mpatches.Patch(color=c, label=s) for s, c in state_color.items()
                 ],
                 loc="upper right",
             )
-
-        plt.title(label=title_text)
+        ax.set_title(label=title_text)
 
         output_path = self.frames_out_path / f"{experiment_num}-frame_{step}.png"
         plt.savefig(output_path)
@@ -113,7 +121,53 @@ class VizAgent:
             plt.savefig(snapshot_path)
         plt.close()
 
+    def plot_infection_comparison(self, strategy_results: dict) -> None:
+        """
+        Plot the comparison of infection spread for different strategies.
+
+        Args:
+        strategy_results (dict): The strategy_results of the experiments to plot.
+        """
+        fig, ax = plt.subplots(figsize=(10, 8))
+        experiments_infected = {}
+        for strategy_name, strategy in strategy_results.items():
+            experiments_infected[strategy_name] = {}
+            for exp_name, experiment in strategy.items():
+                history = experiment["history"]
+                I = [h["I"] for h in history]
+                if exp_name in experiments_infected:
+                    experiments_infected[exp_name].update({strategy_name: I})
+                else:
+                    experiments_infected[exp_name] = {}
+        ax.set_xlim(0, self._max_steps_x_axis)
+        ax.set_ylim(0, self._max_nodes_range)
+
+        for exp_name, strategies in experiments_infected.items():
+            for strategy_name, I in strategies.items():
+                ax.plot(I, label=f"{strategy_name}")
+                ax.legend()
+                ax.set_xlabel("Time Steps")
+                ax.set_ylabel("Number of Infected Nodes")
+                ax.set_title("Infection Spread Comparison")
+                ax.grid(True)
+                plt.savefig(
+                    self.plot_out_path.parent.parent
+                    / f"{exp_name}-infection-comparison.png"
+                )
+                plt.close()
+
     def plot_sir_data(self, results: dict):
+
+        self.current_strategy = self.plot_out_path.parent.name
+        for result in results.values():
+            history_length = len(result["history"])
+            max_nodes = max(max(h["S"], h["I"], h["R"]) for h in result["history"])
+
+            if history_length > self._max_steps_x_axis:
+                self._max_steps_x_axis = history_length
+            # Get the maximum state count for the y-axis limit
+            if max_nodes > self._max_nodes_range:
+                self._max_nodes_range = max_nodes
 
         for exp_id, result in results.items():
             history = result["history"]
@@ -137,19 +191,21 @@ class VizAgent:
             ax.plot(S, label="Susceptible", color="blue")
             ax.plot(I, label="Infected", color="red")
             ax.plot(R, label="Recovered", color="green")
+            ax.set_xlim(0, self._max_steps_x_axis)
+            ax.set_ylim(0, self._max_nodes_range)
 
             ax.legend(handles=[susceptible_patch, infected_patch, recovered_patch])
             ax.set_xlabel("Time Steps")
             ax.set_ylabel("Number of Nodes")
             ax.set_title(
-                f'SIR - {exp_id} p = {parameters["p"]} tI= {parameters["tI"]} q = {parameters["q"]}'
+                f'SIR - {exp_id} {self._current_strategy} p = {parameters["p"]} tI= {parameters["tI"]} q = {parameters["q"]}'
             )
             ax.grid(True)
             plt.savefig(
                 self.plot_out_path
                 / f'{exp_id}-{parameters["p"]}-{parameters["tI"]}-{parameters["q"]}.png'
             )
-            plt.close()
+        plt.close()
 
     def create_gif(
         self,
@@ -164,7 +220,6 @@ class VizAgent:
         experiment_id (str): Identifier for the experiment to create GIF.
         gif_name (str): The name of the output GIF file.
         duration (int): The duration each frame appears in the GIF (in milliseconds).
-        path_to_frames (Path): Path to the directory containing frame images.
         """
         frames = []
         # Filter and sort frame files based on experiment_id and step number
