@@ -1,0 +1,438 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% University/School Laboratory Report
+% This is for code review purposes only
+% 
+% Authors:
+% Szymon Zinkowicz
+%
+% License:
+% MIT
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+
+
+\documentclass[
+	report, % Paper size, specify a4paper (A4) or letterpaper (US letter)
+	11pt, % Default font size, specify 10pt, 11pt or 12pt
+]{CSUniSchoolLabReport}
+
+\usepackage[table, dvipsnames]{xcolor}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{subcaption} % To have subfigures available
+\usepackage{caption} % To have caption justification
+\usepackage[export]{adjustbox}
+\usepackage{lipsum} % for mock text
+\usepackage{fancyhdr}
+\usepackage{csvsimple} % for reading csv
+\usepackage{float} % for H in figures
+\usepackage{siunitx} % for SI units and rounding
+\usepackage{pgfplotstable}  % For handling table imports and formatting
+\usepackage{booktabs}       % For professional table formatting
+\usepackage{pgffor}   % For looping constructs
+\usepackage{array,multirow,makecell}
+\usepackage{pdflscape}
+\usepackage{forloop}  % For creating loop-like behavior
+\usepackage{geometry} % For setting the margins
+\newcounter{ct}
+\newcommand{\addimage}[1]{%
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{#1}
+    \end{minipage}%
+}
+
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash }b{#1}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash }b{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash }b{#1}}
+
+\sisetup{
+  round-mode = places, % Rounds numbers
+  round-precision = 4, % to 4 decimal places
+}
+\addbibresource{sample.bib} % Bibliography file (located in the same folder as the template)
+
+\hypersetup{
+	colorlinks=true,
+	linktoc=all,
+	linkcolor=blue,
+}
+
+\pagestyle{fancy}
+\fancyhead{} % clear all header fields
+\fancyfoot{} % clear all footer fields
+\fancyfoot[R]{\thepage} % page number in "outer" position of footer line
+\renewcommand{\headrulewidth}{2pt}
+\renewcommand{\footrulewidth}{1pt}
+\renewcommand{\sectionmark}[1]{\markboth{\thesection. #1}{}}
+\fancyhead[L]{%
+  \begin{tabular}{@{}l@{}}
+  \leftmark\\
+  \rightmark
+  \end{tabular}%
+}
+\setlength{\headheight}{24pt}
+
+%----------------------------------------------------------------------------------------
+%	Functions ;>
+%----------------------------------------------------------------------------------------
+
+\newcommand{\csvtable}[3]{% #1=filename, #2=caption, #3=column headers
+\begin{table}[H]
+	\centering
+	\csvreader[tabular=|c|c|,
+	table head=\hline #3 \\\hline,
+	late after line=\\\hline]%
+	{#1}{1=\Node, 2=\Score}%
+	{\Node & \num{\Score}}
+	\caption{#2}
+\end{table}
+}
+
+
+%----------------------------------------------------------------------------------------
+%	REPORT INFORMATION
+%----------------------------------------------------------------------------------------
+
+
+
+\begin{document}
+
+\title{NETWORK ANALYSIS \\
+\large Assignment 2 Report \\
+		SIR analysis on rat brain} % Title
+\author{Szymon \textsc{Zinkowicz} \\ Matricola number: 5181814} % Author name(s)
+\date{\today} % Date of the report
+
+\maketitle % Insert the title, author, and date using the information specified above
+\thispagestyle{empty}
+
+\begin{center}
+	\vspace{\fill}
+	University of \textsc{Genova} \\
+	\begin{tabular}{l r}
+		Instructor: & Professor \textsc{Marina Ribaudo}
+	\end{tabular}
+\end{center}
+\pagebreak
+
+
+
+%----------------------------------------------------------------------------------------
+%	Abstract
+%----------------------------------------------------------------------------------------
+\begin{abstract}
+	\thispagestyle{empty}This study explores the dynamics of infection spread on a biological network using the Susceptible-Infected-Recovered (SIR) model derived from the mouse-kasthuri-graph-v4 dataset. The primary aim was to investigate the effects of varying the disease transmission probability (p) and recovery probability (q), alongside different initial infection strategies, within a computational network analysis context. The network, selected for its biological relevance and complexity, consists of 1,029 nodes and 1,559 edges, simulating synaptic connections within a rat's brain.
+
+	Our findings indicate that increases in the transmission probability (p) significantly accelerated the infection spread, leading to higher peaks of infected nodes, albeit contained within shorter durations. Conversely, elevating the recovery probability (q) delayed the peak infection times, extending the disease's presence within the network. Among the infection strategies tested, those based on node closeness and degree centrality were most effective in spreading the infection rapidly and extensively, suggesting that these metrics are critical in destabilizing network structures under epidemic scenarios. The random infection strategy, however, resulted in the longest recovery times.
+	
+	The disease did not persist, consistent with the SIR model's predictions, and eventually died out. The network's structure, characterized by 20 connected components compared to a similar-sized random network's 53, suggests a more integrated but segmented topology, which might have influenced the spread and containment of the disease.
+	
+	Given the scope and results of this simulation, performed as part of a Computer Science network analysis class, we demonstrate the utility and relevance of biological networks in computational studies, shedding light on the pivotal roles of network topology and node centrality in disease dynamics.
+\end{abstract}
+\pagebreak
+
+%----------------------------------------------------------------------------------------
+%	Table of Contents
+%----------------------------------------------------------------------------------------
+\tableofcontents % Insert the table of contents
+\thispagestyle{empty}
+\pagebreak
+
+\section{Introduction}
+\subsection{Methods}
+This study employs the Susceptible-Infected-Recovered (SIR) model on the \textbf{"mouse-kasthuri-graph-v4"} dataset, a detailed representation of the brain's network, to simulate and analyze the dynamics of disease spread.\\
+The dataset provides a biological network framework that allows us to explore how structural characteristics influence epidemic processes. The following methods and analyses were specifically adapted to assess the impact of network properties on disease transmission and recovery:
+
+\begin{itemize}
+\item \textbf{SIR Model Implementation:} Utilizing the well-established epidemiological SIR model to simulate disease spread across the network, emphasizing the impact of node states and transmission dynamics.
+\item \textbf{Parameter Variation:} Systematic adjustment of the disease transmission probability (p) and recovery probability (q), along with various initial infection strategies, to evaluate their effects on epidemic outcomes.
+\item \textbf{Centrality Measures:} Analysis of betweenness, closeness, and eigenvector centrality to identify critical nodes influencing the speed and spread of the infection.
+\item \textbf{Community Detection:} Investigation of how communities within the network affect the containment or propagation of the disease.
+\item \textbf{Network Resilience:} Evaluating how network structure, including connectivity and clustering coefficients, influences the robustness and susceptibility of the network to epidemics.
+\item \textbf{Infection Strategy Analysis:} Comparing different strategies for initiating the infection (based on centrality measures and random selection) to determine their effectiveness in different scenarios.
+\end{itemize}
+
+\subsection{Dataset Description}
+
+The "mouse-kasthuri-graph-v4" dataset, derived from the somatosensory cortex of a mouse brain, serves as the basis for our network analysis. This dataset is part of the broader efforts by Neurodata's Kasthuri project to provide high-resolution electron microscopy data of neural connectivity, facilitating the exploration of complex biological networks.
+
+\subsubsection{Source and Collection}
+
+Sourced from the Kasthuri lab and available through networkrepository.com, this dataset allows us to map a real biological network onto a computational model to study the spread of infectious diseases.
+
+\subsubsection{Characteristics}
+		
+The dataset features a network graph with the following properties:
+\begin{itemize}
+	\item \textbf{Number of Nodes:} 1029, representing various cellular components within the brain.
+	\item \textbf{Number of Edges:} 1559, indicative of the synaptic connections between these components.
+	\item \textbf{Average Degree:} Approximately \num{3.0301263362487854}, reflecting the average number of connections per node.
+	\item \textbf{Network Type:} Unweighted and undirected, suitable for fundamental network analysis.
+\end{itemize}
+\vspace{10pt}
+
+This detailed structural and functional representation provides a unique platform for studying the dynamics of disease spread and assessing the impact of network topology on epidemiological outcomes.
+
+\section{Model Implementation and Configuration}
+\subsection{SIR Model Basics}
+The SIR (Susceptible-Infected-Recovered) model divides the population into three compartments: Susceptible (S), Infected (I), and Recovered (R). Each node in the network represents an individual in one of these states. The model simulates the progression of disease through these states based on probabilistic transitions influenced by network interactions among individuals.
+
+\subsection{Model Parameters}
+The dynamics of the SIR model are primarily governed by two parameters:
+\begin{itemize}
+\item \textbf{Transmission Probability (p):} Represents the likelihood that the disease will be transmitted between a susceptible and an infected individual during a contact. This probability was varied to observe its effect on the speed and extent of the epidemic spread.
+\item \textbf{Recovery Probability (q):} Indicates the chance that an infected individual recovers and moves to the recovered state in any given time step. This parameter was also adjusted to see how it affects the duration and resolution of the epidemic.
+\end{itemize}
+
+\subsection{Infection Duration}
+To simplify the model, it was assumed that each infected individual remains in the infected state for a minimum time, \textbf{tI}, before they have a chance to recover. This duration mimics the infectious period of a disease and varies based on real-world data or hypothetical scenarios.
+
+\subsection{Initial Conditions and Infection Strategies}
+The initial condition of the network was set with all nodes in the susceptible state, except for a small number predefined as infected:
+\begin{itemize}
+\item \textbf{Number of Initially Infected (i0):} A critical parameter that affects the outbreak's potential. Different values were tested to understand threshold effects.
+\item \textbf{Selection of Initially Infected Nodes:} Nodes were selected based on several strategies:
+\begin{itemize}
+\item \textbf{Random Selection:} Nodes are chosen randomly, representing a scenario where disease introduction is sporadic and unstructured.
+\item \textbf{Centrality-Based Selection:} Nodes with high betweenness, closeness, or degree centrality were chosen to simulate scenarios where highly connected or strategically positioned individuals are the initial carriers.
+\end{itemize}
+\end{itemize}
+
+\subsection{Simulation Procedure}
+Each simulation run involved iterating through discrete time steps. At each step:
+\begin{itemize}
+	\item Infected nodes attempted to infect their susceptible neighbors with a probability pp.
+	\item After completing the minimum infectious period tI, infected nodes had a chance to recover based on the probability q.
+	\item The network state was updated at each step, tracking transitions from S to I, and I to R.
+	\item The process continued until no infected nodes remained, or a maximum number of time steps was reached.
+\end{itemize}
+
+\subsection{Data Collection and Analysis}
+Throughout the simulation, data were collected on infection rates, recovery rates, and the duration of the epidemic. This data allowed for analysis of the impact of various parameters and infection strategies on epidemic dynamics.
+
+\section{Experimental Design and Parameters}
+
+\subsection{Overview}
+A series of controlled experiments were conducted to investigate the effects of varying key parameters of the SIR model on the dynamics of disease spread within the network. The experiments were designed to systematically vary the disease transmission probability (p), the recovery probability (q), and the duration of infection (tI) while observing the resultant epidemic outcomes. Each experiment started with a fixed initial number of infected nodes (i0) to maintain consistency across different trials.
+
+\subsection{Parameter Variations}
+The experiments were structured into two main groups to isolate the effects of changing transmission and recovery probabilities:
+\section{Experiment Setup}
+
+Here we detail the configuration of each experiment:
+
+\begin{table}[H]
+    \centering
+    \pgfplotstabletypeset[
+		col sep=comma,                % The separator in our CSV file is a comma
+        string type,                  % Treat all columns as strings
+        every head row/.style={
+			before row=\toprule,     % Formatting the header
+            after row=\midrule
+			},
+			every last row/.style={
+				after row=\bottomrule
+				},
+				every odd row/.style={
+					before row={\rowcolor{gray!10}}
+					},
+					columns={Experiment, p, q}, % Set the columns to be used
+					% columns={Experiment, p, tI, q, i0}, % Set the columns to be used
+					columns/Experiment/.style={column type=|C{2.5cm}|, column name=Experiment ID},
+					columns/p/.style={column type=|C{2.5cm}|, column name=Transmission Probability ($p$)},
+					columns/tI/.style={column type=|C{2.5cm}|, column name=Duration of Infection ($tI$)},
+					columns/q/.style={column type=|C{2.5cm}|, column name=Recovery Probability ($q$)},
+					columns/i0/.style={column type=|C{1.95cm}|, column name=Initial Infected ($i0$)}
+					]{../data/Experiments.csv}
+	\captionsetup{justification=centering}
+	\caption{Summary of Experiments}  % Caption for the table
+    \label{tab:experiments}           % Label for referencing
+
+\end{table}	
+\begin{enumerate}
+
+\item \textbf{Duration of Infection (tI) and Initial Infected (i0):} These parameters where kept constant throughout the experiments, with tI set to 1 and i0 set to 5.
+
+\item \textbf{Varying Transmission Probability (p):}
+This series of experiments focused on understanding how changes in the likelihood of disease transmission affect the spread and severity of the epidemic. The transmission probability was varied from 0.1 to 0.5, keeping the recovery probability and the duration of infection constant.
+
+\item \textbf{Varying Recovery Probability (q):}
+This set of experiments was designed to assess the impact of the recovery rate on the disease's duration and the recovery timeline within the network. Here, the transmission probability was held constant while the recovery probability was varied significantly.
+
+\end{enumerate}
+
+\subsection{Rationale and Expectations}
+The rationale behind varying these parameters was to explore how different rates of transmission and recovery influence the epidemiological characteristics of the network, such as peak infection rates, total number of infections, and the speed of epidemic resolution. These experiments are expected to provide insights into the resilience of the network against infectious diseases and the effectiveness of potential interventions.
+
+% \subsection{Effect of Transmission Probability}
+
+% Adjusting the page dimensions for this landscape page
+\newgeometry{top=0cm, bottom=0cm, left=1cm, right=1cm}
+\section{Comparison of Different Probabilities}
+\subsection{Experiments 1-4: Varying Transmission Probability (p)}
+    \thispagestyle{empty} % Clears the header and footer on this page
+	\fancyfoot[R]{\thepage} % page number in "outer" position of footer line
+% Different q values
+
+    \begin{figure}[H]
+        \centering
+        % First column for closeness plots
+        \begin{minipage}{0.5\textwidth}
+            \centering
+            \forloop{ct}{1}{\value{ct} < 5}{%
+                \includegraphics[width=0.5\linewidth]{../out/closeness/plots/exp1\arabic{ct}-0.\arabic{ct}-3-0.3.png}%
+                \ifnum\value{ct}=2 \hfill \fi % Adds a space between column 1 and 2
+                \ifnum\value{ct}=4 \\\fi % Breaks the line after the second image
+            }
+            \includegraphics[width=0.5\linewidth]{../out/closeness/plots/exp15-0.5-3-0.3.png}
+            \caption*{Closeness Centrality}
+        \end{minipage}%
+		\vline
+        \begin{minipage}{0.5\textwidth}
+            \centering
+            \forloop{ct}{1}{\value{ct} < 5}{%
+                \includegraphics[width=0.5\linewidth]{../out/betweenness/plots/exp1\arabic{ct}-0.\arabic{ct}-3-0.3.png}%
+                \ifnum\value{ct}=2 \hfill \fi % Adds a space between column 1 and 2
+                \ifnum\value{ct}=4 \\\fi % Breaks the line after the second image
+            }
+            \includegraphics[width=0.5\linewidth]{../out/betweenness/plots/exp15-0.5-3-0.3.png}
+            \caption*{Betweenness Centrality}
+        \end{minipage}
+        \caption{Comparison of Transmission Probabilities: Closeness and Betweenness Centrality}
+        \label{fig:transmission_probabilities_closeness_betweenness}
+    \end{figure}
+	\begin{figure}[H]
+		\begin{minipage}{\textwidth}
+			\centering
+			\forloop{ct}{1}{\value{ct} < 6}{% Loop up to 5 images
+				\includegraphics[width=0.32\linewidth]{../out/random/plots/exp1\arabic{ct}-0.\arabic{ct}-3-0.3.png}%
+				\ifnum\value{ct}=3 \\\fi % Breaks the line after the third image
+				\ifnum\value{ct}<3 \hfill \fi % Adds horizontal space between images in the same row
+				\ifnum\value{ct}=5 \\ \fi % Ensures line break after the last (fifth) image
+			}
+		\end{minipage}
+		\caption{Comparison of Transmission Probabilities: Random Centrality}
+		\label{fig:transmission_probabilities_random}
+	\end{figure}
+	\begin{figure}[H]
+		\begin{minipage}{\textwidth}
+			\centering
+			\forloop{ct}{1}{\value{ct} < 6}{% Loop up to 5 images
+				\includegraphics[width=0.32\linewidth]{../out/degree/plots/exp1\arabic{ct}-0.\arabic{ct}-3-0.3.png}%
+				\ifnum\value{ct}=3 \\\fi % Breaks the line after the third image
+				\ifnum\value{ct}<3 \hfill \fi % Adds horizontal space between images in the same row
+				\ifnum\value{ct}=5 \\ \fi % Ensures line break after the last (fifth) image
+			}
+		\end{minipage}
+
+		\caption{Comparison of Transmission Probabilities: Degree Centrality}
+		\label{fig:transmission_probabilities_degree}
+	\end{figure}
+\subsection{Experiments 5-9: Varying Recovery Probability (q)}
+\thispagestyle{empty} % Clears the header and footer on this page
+\fancyfoot[R]{\thepage} % page number in "outer" position of footer line
+% Different q values
+\begin{figure}[H]
+	\centering
+	% First column for closeness plots
+	\begin{minipage}{0.5\textwidth}
+		\centering
+		\forloop{ct}{1}{\value{ct} < 5}{%
+			\includegraphics[width=0.5\linewidth]{../out/closeness/plots/exp1\arabic{ct}-0.\arabic{ct}-3-0.3.png}%
+			\ifnum\value{ct}=2 \hfill \fi % Adds a space between column 1 and 2
+			\ifnum\value{ct}=4 \\\fi % Breaks the line after the second image
+		}
+		\includegraphics[width=0.5\linewidth]{../out/closeness/plots/exp15-0.5-3-0.3.png}
+		\caption*{Closeness Centrality}
+	\end{minipage}%
+	\vline
+	% Second column for betweenness plots
+	\begin{minipage}{0.5\textwidth}
+		\centering
+		\forloop{ct}{1}{\value{ct} < 5}{%
+			\includegraphics[width=0.5\linewidth]{../out/betweenness/plots/exp1\arabic{ct}-0.\arabic{ct}-3-0.3.png}%
+			\ifnum\value{ct}=2 \hfill \fi % Adds a space between column 1 and 2
+			\ifnum\value{ct}=4 \\\fi % Breaks the line after the second image
+		}
+		\includegraphics[width=0.5\linewidth]{../out/betweenness/plots/exp15-0.5-3-0.3.png}
+		\caption*{Betweenness Centrality}
+	\end{minipage}
+	\caption{Comparison of Transmission Probabilities: Closeness and Betweenness Centrality}
+	\label{fig:recovery_probabilities_closeness_betweenness}
+\end{figure}
+\begin{figure}[H]
+	% \centering
+	% First column for closeness plots
+	\begin{minipage}{\textwidth}
+		\centering
+		% Loop for placing images. Adjust \ifnum conditions as needed
+		\forloop{ct}{1}{\value{ct} < 6}{% Loop up to 5 images
+			\includegraphics[width=0.32\linewidth]{../out/random/plots/exp1\arabic{ct}-0.\arabic{ct}-3-0.3.png}%
+			\ifnum\value{ct}=3 \\\fi % Breaks the line after the third image
+			\ifnum\value{ct}<3 \hfill \fi % Adds horizontal space between images in the same row
+			% \ifnum\value{ct}>4 \hfill \fi % Adds horizontal space between images in the same row
+			\ifnum\value{ct}=5 \\ \fi % Ensures line break after the last (fifth) image
+		}
+		% Additional images can be added here or adjusted in the loop
+	\end{minipage}
+
+	\caption{Comparison of Transmission Probabilities: Random Centrality}
+	\label{fig:recovery_probabilities_random_degree}
+\end{figure}
+
+\subsection{Comparison of of infections strategies}
+
+\begin{figure}[H]
+	\centering
+	\forloop{ct}{1}{\value{ct} < 7}{% Loop up to 5 images
+			\includegraphics[width=0.32\linewidth]{../out/exp1\arabic{ct}-infection-comparison.png}%
+			\ifnum\value{ct}=3 \\\fi % Breaks the line after the third image
+		}
+	\caption{Comparison of infection strategies: Changing transmission probability}
+	\label{fig:infection_strategies_comparison_p}
+
+\end{figure}
+\begin{figure}[H]
+	\centering
+	\forloop{ct}{1}{\value{ct} < 8}{% Loop up to 5 images
+		\includegraphics[width=0.32\linewidth]{../out/exp2\arabic{ct}-infection-comparison.png}%
+		\ifnum\value{ct}=3 \\\fi % Breaks the line after the third image
+		\ifnum\value{ct}=6 \\\fi % Breaks the line after the third image
+	}
+	\caption{Comparison of infection strategies: Changing recovery probability}
+	\label{fig:infection_strategies_comparison_q}
+\end{figure}
+
+% od 10 do 12:30 jutro
+% Dziś po 15 i ew teraz 
+% składowa 5 pokój 22
+
+% Restore the original geometry if needed later
+\restoregeometry
+\section{Analysis and Interpretation}
+\subsection{Comparative Analysis}
+The simulation data clearly shows that as the transmission probability (p) was increased, the peak infection rates also increased across all strategies. This observation is consistent with epidemiological models, where a higher probability of disease transmission leads to more rapid and widespread infection. Also because of higher and faster peak of infections, the infection died out in significantly less steps from \textbf{40} to \textbf{30}. Notably, the closeness strategy consistently resulted in the highest peak infection, indicating that nodes with high closeness centrality are crucial in spreading the infection more efficiently across the network. Conversely, the degree strategy resulted in the lowest peaks, suggesting that while highly connected nodes are influential, their impact may be localized depending on the network structure.\\
+As for the recovery probability (q), increasing qq led to a reduction in the initial spike of infections, confirming the expected inverse relationship between recovery rate and infection spread. A faster recovery rate tends to stabilize the network more quickly, reducing the number of simultaneously infected nodes and potentially shortening the epidemic's duration from almost \textbf{100} to over \textbf{20}.
+\subsection{Role of Network Topology}
+Regarding the initial infection strategies, the results were nuanced. The betweenness and random strategies resulted in similar timing for infection spikes, but the betweenness strategy was less effective in claiming more nodes than the random strategy. This could suggest that while betweenness centrality identifies crucial nodes in terms of network flow, it does not always correlate with the most effective spread of infectious diseases, possibly due to the layout of the remaining network structure or the specific interactions among nodes. Both degree and closeness strategies were more effective, particularly in terms of reaching earlier and higher spikes in infections, confirming assessment that strategies leading to faster and more extensive disruptions are preferable for understanding potential vulnerabilities in network structures.
+
+\subsection{Significance of Node Centrality}
+The variations in effectiveness among the centrality measures highlight the complex role of node properties in disease dynamics. Closeness centrality's success in achieving higher peaks more quickly suggests that the ability of nodes to infect others across shorter path lengths is crucial in densely connected networks. On the other hand, the relative underperformance of betweenness centrality could indicate its lesser relevance in networks where disease spread does not hinge on specific "bridge" nodes.
+
+
+\subsection{Practical Applications}
+\begin{itemize}
+	\item	Closeness Centrality: Was effective in causing quicker and higher peaks of infection, supporting the theory that nodes which can reach other nodes more quickly (lower path lengths) are critical in the spread of infections.
+	\item	Betweenness Centrality: Despite theoretically being considered crucial for controlling information or disease flow through a network, it was less effective than random selection in some cases. This suggests that the importance of betweenness centrality may be context-dependent, influenced by the specific structure and connectivity of the network rather than universally applicable.
+\end{itemize}
+\end{document}

@@ -32,10 +32,11 @@
 %----------------------------------------------------------------------------------------
 
 \usepackage{enumitem} % Required for list customization
-\setlist{partopsep=0pt, topsep=0pt} % Customize spacing around and inside lists
+
+\setlist{partopsep=5pt, topsep=5pt} % Customize spacing around and inside lists
 \renewcommand{\labelenumi}{\alph{enumi}.} % Change numbering in the enumerate environment by letter rather than number
 
-\setlength{\parindent}{0pt} % Suppress paragraph indentation
+\setlength{\parindent}{2pt} % Suppress paragraph indentation
 
 \usepackage{graphicx} % Required for including images
 \graphicspath{{Figures/}{./}} % Specifies where to look for included images (trailing slash required)
