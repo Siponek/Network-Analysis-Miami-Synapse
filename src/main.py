@@ -95,35 +95,36 @@ experiments = {
     "exp26": {"p": 0.3, "tI": 3, "q": 0.7, "i0": 5},
     "exp27": {"p": 0.3, "tI": 3, "q": 0.9, "i0": 5},
 }
-(
-    G,
-    pos,
-) = setup_graph()
+if __name__ == "__main__":
+    (
+        G,
+        pos,
+    ) = setup_graph()
 
-
-Viz_Agent: viz_agent.VizAgent = viz_agent.VizAgent(
-    plot_out_path=Path("out/random/plots"),
-    frames_out_path=Path("out/random/frames"),
-    gif_out_path=Path("out/random/gifs"),
-    snapshot_path=Path("out/random/snapshots"),
-)
-SIR_simulator: sir.SIR = sir.SIR(viz_agent=Viz_Agent)
-
-# Running simulations for different strategies
-base_dir = "out"
-strategies = ["random", "betweenness", "degree", "closeness"]
-strategy_results = {}
-for strategy in strategies:
-    dir_path = f"{base_dir}/{strategy}"
-    strategy_result = run_simulation(
-        strategy=strategy,
-        frame_dir=f"{dir_path}/frames",
-        gif_dir=f"{dir_path}/gifs",
-        plot_dir=f"{dir_path}/plots",
-        snapshot_dir=f"{dir_path}/snapshots",
+    Viz_Agent: viz_agent.VizAgent = viz_agent.VizAgent(
+        plot_out_path=Path("out/random/plots"),
+        frames_out_path=Path("out/random/frames"),
+        gif_out_path=Path("out/random/gifs"),
+        snapshot_path=Path("out/random/snapshots"),
     )
-    strategy_results[strategy] = strategy_result
+    SIR_simulator: sir.SIR = sir.SIR(viz_agent=Viz_Agent)
 
-print("Simulation completed")
-Viz_Agent.plot_infection_comparison(strategy_results)
-print("Plotting infected completed")
+    # Running simulations for different strategies
+    base_dir = "out"
+    # strategies = ["random", "betweenness"]
+    strategies = ["random", "betweenness", "degree", "closeness"]
+    strategy_results = {}
+    for strategy in strategies:
+        dir_path = f"{base_dir}/{strategy}"
+        strategy_result = run_simulation(
+            strategy=strategy,
+            frame_dir=f"{dir_path}/frames",
+            gif_dir=f"{dir_path}/gifs",
+            plot_dir=f"{dir_path}/plots",
+            snapshot_dir=f"{dir_path}/snapshots",
+        )
+        strategy_results[strategy] = strategy_result
+
+    print("Simulation completed")
+    Viz_Agent.plot_infection_comparison(strategy_results)
+    print("Plotting infected completed")

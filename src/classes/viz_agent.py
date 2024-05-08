@@ -124,37 +124,60 @@ class VizAgent:
     def plot_infection_comparison(self, strategy_results: dict) -> None:
         """
         Plot the comparison of infection spread for different strategies.
-
-        Args:
-        strategy_results (dict): The strategy_results of the experiments to plot.
         """
-        fig, ax = plt.subplots(figsize=(10, 8))
-        experiments_infected = {}
-        for strategy_name, strategy in strategy_results.items():
-            experiments_infected[strategy_name] = {}
-            for exp_name, experiment in strategy.items():
-                history = experiment["history"]
-                I = [h["I"] for h in history]
-                if exp_name in experiments_infected:
-                    experiments_infected[exp_name].update({strategy_name: I})
-                else:
-                    experiments_infected[exp_name] = {}
-        ax.set_xlim(0, self._max_steps_x_axis)
-        ax.set_ylim(0, self._max_nodes_range)
-
-        for exp_name, strategies in experiments_infected.items():
-            for strategy_name, I in strategies.items():
-                ax.plot(I, label=f"{strategy_name}")
-                ax.legend()
-                ax.set_xlabel("Time Steps")
-                ax.set_ylabel("Number of Infected Nodes")
-                ax.set_title("Infection Spread Comparison")
-                ax.grid(True)
-                plt.savefig(
-                    self.plot_out_path.parent.parent
-                    / f"{exp_name}-infection-comparison.png"
+        infected_experiments: dict = dict()
+        for exp_name in next(
+            iter(strategy_results.values())
+        ):  # Assuming all strategies contain the same experiments
+            # Plot each strategy's infection history for the current experiment
+            infected_experiments[exp_name] = {}
+            for strategy_name, experiments in strategy_results.items():
+                if (
+                    exp_name in experiments
+                ):  # Check if the experiment exists in this strategy
+                    _, ax = plt.subplots(figsize=(10, 8))
+                    experiment = experiments[exp_name]
+                    history = experiment["history"]
+                    I = [
+                        h["I"] for h in history
+                    ]  # Extract number of infected at each time step
+                    if exp_name in infected_experiments:
+                        infected_experiments[exp_name].update(
+                            {
+                                strategy_name: {
+                                    "infection_array": I,
+                                    "params": experiment["params"],
+                                }
+                            }
+                        )
+                    else:
+                        infected_experiments[exp_name] = {
+                            strategy_name: {
+                                "infection_array": I,
+                                "params": experiment["params"],
+                            }
+                        }
+        current_params = "p=0.1, tI=10, q=0.5"
+        for exp_name, strategies_and_params in infected_experiments.items():
+            _, ax = plt.subplots(figsize=(10, 8))
+            for strategy_name, infection_and_params in strategies_and_params.items():
+                current_params = f"p={infection_and_params['params']['p']}, tI={infection_and_params['params']['tI']}, q={infection_and_params['params']['q']}"
+                ax.plot(
+                    infection_and_params["infection_array"],
+                    label=f"{strategy_name} strategy",
                 )
-                plt.close()
+            ax.set_xlim(0, self._max_steps_x_axis)
+            ax.set_ylim(0, self._max_nodes_range)
+            ax.legend()
+            ax.set_xlabel("Time Steps")
+            ax.set_ylabel("Number of Infected Nodes")
+            ax.set_title(f"Infection Spread Comparison {exp_name} {current_params}")
+            ax.grid(True)
+            plt.savefig(
+                self.plot_out_path.parent.parent
+                / f"{exp_name}-infection-comparison.png"
+            )
+            plt.close()
 
     def plot_sir_data(self, results: dict):
 
@@ -205,7 +228,7 @@ class VizAgent:
                 self.plot_out_path
                 / f'{exp_id}-{parameters["p"]}-{parameters["tI"]}-{parameters["q"]}.png'
             )
-        plt.close()
+            plt.close()
 
     def create_gif(
         self,
